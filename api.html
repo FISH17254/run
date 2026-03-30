@@ -71,13 +71,15 @@ td code{background:#f1f5f9;padding:1px 6px;border-radius:3px;font-size:12px;colo
   <a href="#api5"><div class="api-name">editpass</div><div class="api-desc">按学号改密码</div></a>
   <a href="#api6"><div class="api-name">setstatus</div><div class="api-desc">改状态（单个/批量）</div></a>
   <div class="sec">其他</div>
+  <a href="#sync">数据同步机制</a>
+  <a href="#db">数据库字段建议</a>
   <a href="#err">错误处理</a>
 </nav>
 
 <div class="wrap">
 
 <h1>隐藏运动对接文档</h1>
-<p class="sub">统一下游接口 &mdash; 支持体适能 / 云运动 / 红蜻蜓 / 位动酷跑 四大业务</p>
+<p class="sub">统一下游接口 &mdash; 支持体适能 / tsn新体适能 / 云运动 / 红蜻蜓 / 位动酷跑 五大业务</p>
 
 <!-- 快速开始 -->
 <div class="card" id="quick">
@@ -120,10 +122,11 @@ td code{background:#f1f5f9;padding:1px 6px;border-radius:3px;font-size:12px;colo
   <h2>服务类型（service）</h2>
   <table>
     <tr><th>service</th><th>名称</th><th>说明</th></tr>
-    <tr><td><code>tsn</code></td><td>体适能</td><td>带距离，按 学校+距离 计费</td></tr>
+    <tr><td><code>tsn</code></td><td>体适能</td><td>带距离，按 学校+距离 计费，所有订单共用同一距离</td></tr>
+    <tr><td><code>tsn2</code></td><td>tsn新体适能</td><td>学校+跑区+距离，每个账号独立 distance，按 km×次数 计费</td></tr>
     <tr><td><code>yyd</code></td><td>云运动</td><td>学校白名单，按次计费</td></tr>
     <tr><td><code>hqt</code></td><td>红蜻蜓</td><td>需分配学校+校区，按次计费</td></tr>
-    <tr><td><code>wdkp</code></td><td>位动酷跑</td><td>学校+校区+距离，校区绑定距离列表</td></tr>
+    <tr><td><code>wdkp</code></td><td>位动酷跑</td><td>学校+校区+距离，校区绑定距离列表，按次计费</td></tr>
   </table>
 </div>
 
@@ -154,6 +157,7 @@ td code{background:#f1f5f9;padding:1px 6px;border-radius:3px;font-size:12px;colo
   <h3>schools 结构差异</h3>
   <div class="grid2">
     <div class="box"><h4>tsn（体适能）</h4><pre>{ "陕西科技大学": [5], "欧亚学院": [5,10,15,20] }</pre><p style="font-size:12px;color:#6b7280;margin-top:6px">key=学校，value=支持的距离数组(km)</p></div>
+    <div class="box"><h4>tsn2（tsn新体适能）</h4><pre>{ "陕西职业技术学院": { "fence": ["跑区1","跑区2"] } }</pre><p style="font-size:12px;color:#6b7280;margin-top:6px">key=学校，fence=跑区列表；distance 在每条订单中单独传，不在 config 中</p></div>
     <div class="box"><h4>yyd（云运动）</h4><pre>["合肥工业大学", "安徽中医药大学", ...]</pre><p style="font-size:12px;color:#6b7280;margin-top:6px">纯数组，学校白名单</p></div>
     <div class="box"><h4>hqt（红蜻蜓）</h4><pre>{ "新疆农业大学": { "fence": ["老满城","亚心"] } }</pre><p style="font-size:12px;color:#6b7280;margin-top:6px">key=学校，fence=校区列表</p></div>
     <div class="box"><h4>wdkp（位动酷跑）</h4><pre>{ "新疆财经大学": { "本部": ["5","10"], "北校区": ["5","10"] } }</pre><p style="font-size:12px;color:#6b7280;margin-top:6px">key=学校，子key=校区，value=距离数组</p></div>
@@ -181,26 +185,28 @@ td code{background:#f1f5f9;padding:1px 6px;border-radius:3px;font-size:12px;colo
     <tr><td><code>speed_range</code></td><td>array</td><td>全部</td><td>配速范围(min/km)，取值 3~11，如 [5, 8] 表示每公里5~8分钟</td></tr>
     <tr><td><code>startTimeRange</code></td><td>string</td><td>全部</td><td>开跑时间段，如 "09:00~14:00"</td></tr>
     <tr style="background:#dbeafe"><td><code>distance</code></td><td>float</td><td><b>仅 tsn</b></td><td>距离(km)，0.1~50，全局配置所有订单共用</td></tr>
-    <tr style="background:#dbeafe"><td><code>run_week_day</code></td><td>array</td><td><b>仅 tsn</b></td><td>跑步星期，如 ["1","2","3","4","5"]</td></tr>
+    <tr style="background:#dbeafe"><td><code>run_week_day</code></td><td>array</td><td><b>tsn / tsn2</b></td><td>跑步星期，如 ["1","2","3","4","5"]</td></tr>
     <tr style="background:#fef3c7"><td><code>run_week_times</code></td><td>int</td><td><b>yyd / hqt / wdkp</b></td><td>每周跑步次数（1-7）</td></tr>
     <tr style="background:#fef3c7"><td><code>norun_week_day</code></td><td>array</td><td><b>yyd / hqt / wdkp</b>（可选）</td><td>休息星期，如 ["7"]，不传默认无休息日</td></tr>
     <tr><td><code>remark</code></td><td>string</td><td>全部（可选）</td><td>备注</td></tr>
   </table>
   <div class="tip">
-    <b>蓝色行</b> = 仅体适能(tsn)使用 &nbsp;|&nbsp; <b>黄色行</b> = 仅云运动/红蜻蜓/位动酷跑使用<br>
-    体适能用 <code>run_week_day</code> 指定哪天跑；其他三个用 <code>run_week_times</code> + <code>norun_week_day</code> 控制频率
+    <b>蓝色行</b> = tsn / tsn2 使用 &nbsp;|&nbsp; <b>黄色行</b> = 仅云运动/红蜻蜓/位动酷跑使用<br>
+    tsn 的 <code>distance</code> 在 config 全局统一；tsn2 的 distance 在每条 order 中单独传，config 中不需要 distance<br>
+    tsn / tsn2 用 <code>run_week_day</code> 指定哪天跑；其他三个用 <code>run_week_times</code> + <code>norun_week_day</code> 控制频率
   </div>
 
   <h3>orders 每条订单字段</h3>
   <table>
     <tr><th>service</th><th>必填字段</th><th>可选字段</th><th>说明</th></tr>
-    <tr><td><code>tsn</code></td><td>school, user, pass</td><td>—</td><td>学校+距离需匹配 schools 配置</td></tr>
+    <tr><td><code>tsn</code></td><td>school, user, pass</td><td>—</td><td>学校需匹配 schools 配置，distance 在 config 全局统一</td></tr>
+    <tr><td><code>tsn2</code></td><td>school, fence, distance, user, pass</td><td>—</td><td>school+fence 需匹配配置，distance 每人独立传，不在 config 中</td></tr>
     <tr><td><code>yyd</code></td><td>school, user, pass</td><td>—</td><td>学校需在白名单中，无 fence / distance</td></tr>
-    <tr><td><code>hqt</code></td><td>school, fence, user, pass</td><td>—</td><td>school + fence 需匹配配置</td></tr>
+    <tr><td><code>hqt</code></td><td>school, fence, distance, user, pass</td><td>—</td><td>school + fence 需匹配配置</td></tr>
     <tr><td><code>wdkp</code></td><td>school, fence, distance, user, pass</td><td>—</td><td>school+fence+distance 需匹配配置，每人可不同</td></tr>
   </table>
   <div class="warn">
-    <b>注意</b>：wdkp 每条订单必须传 <code>school</code> + <code>fence</code>(校区) + <code>distance</code>(公里数)，三者均为必填；tsn 的 <code>distance</code> 是在 <b>config</b> 中全局统一设置
+    <b>注意</b>：tsn2 / hqt / wdkp 每条订单必须传 <code>distance</code>，各人可不同；tsn 的 <code>distance</code> 在 <b>config</b> 中全局统一设置，订单中不传
   </div>
 
   <h3>请求示例（tsn）</h3>
@@ -217,6 +223,23 @@ td code{background:#f1f5f9;padding:1px 6px;border-radius:3px;font-size:12px;colo
   <span class="k">"orders"</span>: [
     { <span class="k">"school"</span>: <span class="s">"陕西科技大学"</span>, <span class="k">"user"</span>: <span class="s">"18888888888"</span>, <span class="k">"pass"</span>: <span class="s">"a123456"</span> },
     { <span class="k">"school"</span>: <span class="s">"欧亚学院"</span>, <span class="k">"user"</span>: <span class="s">"19999999999"</span>, <span class="k">"pass"</span>: <span class="s">"b654321"</span> }
+  ]
+}</pre>
+
+  <h3>请求示例（tsn2）</h3>
+  <pre><span class="c">POST ?service=tsn2&amp;act=pladd</span>
+{
+  <span class="k">"uid"</span>: <span class="n">1</span>, <span class="k">"key"</span>: <span class="s">"加密密钥"</span>,
+  <span class="k">"config"</span>: {
+    <span class="k">"sport_num"</span>: <span class="n">20</span>,
+    <span class="k">"startdate"</span>: <span class="s">"2026-03-30"</span>,
+    <span class="k">"speed_range"</span>: [<span class="n">5</span>, <span class="n">8</span>],
+    <span class="k">"startTimeRange"</span>: <span class="s">"09:00~14:00"</span>,
+    <span class="k">"run_week_day"</span>: [<span class="s">"1"</span>,<span class="s">"2"</span>,<span class="s">"3"</span>,<span class="s">"4"</span>,<span class="s">"5"</span>]
+  },
+  <span class="k">"orders"</span>: [
+    { <span class="k">"school"</span>: <span class="s">"陕西职业技术学院"</span>, <span class="k">"fence"</span>: <span class="s">"跑区1"</span>, <span class="k">"distance"</span>: <span class="n">10</span>, <span class="k">"user"</span>: <span class="s">"18888888888"</span>, <span class="k">"pass"</span>: <span class="s">"a123456"</span> },
+    { <span class="k">"school"</span>: <span class="s">"西南石油"</span>, <span class="k">"fence"</span>: <span class="s">"跑区1"</span>, <span class="k">"distance"</span>: <span class="n">5</span>, <span class="k">"user"</span>: <span class="s">"19999999999"</span>, <span class="k">"pass"</span>: <span class="s">"b654321"</span> }
   ]
 }</pre>
 
@@ -248,7 +271,7 @@ td code{background:#f1f5f9;padding:1px 6px;border-radius:3px;font-size:12px;colo
     <span class="k">"norun_week_day"</span>: [<span class="s">"7"</span>]
   },
   <span class="k">"orders"</span>: [
-    { <span class="k">"school"</span>: <span class="s">"新疆农业大学"</span>, <span class="k">"fence"</span>: <span class="s">"老满城"</span>, <span class="k">"user"</span>: <span class="s">"220252822"</span>, <span class="k">"pass"</span>: <span class="s">"abc123"</span> }
+    { <span class="k">"school"</span>: <span class="s">"新疆农业大学"</span>, <span class="k">"fence"</span>: <span class="s">"老满城"</span>, <span class="k">"distance"</span>: <span class="n">5</span>, <span class="k">"user"</span>: <span class="s">"220252822"</span>, <span class="k">"pass"</span>: <span class="s">"abc123"</span> }
   ]
 }</pre>
 
@@ -272,7 +295,8 @@ td code{background:#f1f5f9;padding:1px 6px;border-radius:3px;font-size:12px;colo
   <h3>价格计算</h3>
   <table>
     <tr><th>service</th><th>公式</th></tr>
-    <tr><td><code>tsn</code></td><td>单价 &times; 距离(km) &times; 次数 &times; 人数</td></tr>
+    <tr><td><code>tsn</code></td><td>单价 &times; 距离(km) &times; 次数 &times; 人数（所有人共用同一距离）</td></tr>
+    <tr><td><code>tsn2</code></td><td>各账号单独计算：&sum;（单价 &times; 该账号距离(km) &times; 次数）</td></tr>
     <tr><td>其他</td><td>单价 &times; 次数 &times; 人数</td></tr>
   </table>
 
@@ -337,8 +361,8 @@ td code{background:#f1f5f9;padding:1px 6px;border-radius:3px;font-size:12px;colo
     <tr><td><code>today_distance</code></td><td>今日跑步距离</td><td></td></tr>
     <tr><td><code>today_speed</code></td><td>今日配速</td><td></td></tr>
     <tr><td><code>start_date</code></td><td>开始日期</td><td></td></tr>
-    <tr><td><code>fence</code></td><td>校区</td><td>仅 hqt / wdkp</td></tr>
-    <tr><td><code>distance</code></td><td>距离(km)</td><td>仅 tsn / wdkp</td></tr>
+    <tr><td><code>distance</code></td><td>距离(km)</td><td>tsn / tsn2 / hqt / wdkp</td></tr>
+    <tr><td><code>fence</code></td><td>跑区/校区</td><td>tsn2 / hqt / wdkp</td></tr>
     <tr><td><code>remark</code></td><td>备注</td><td></td></tr>
     <tr><td><code>addtime</code></td><td>下单时间</td><td></td></tr>
   </table>
@@ -385,7 +409,7 @@ td code{background:#f1f5f9;padding:1px 6px;border-radius:3px;font-size:12px;colo
     <tr><th>条件</th><th>结果</th></tr>
     <tr><td>"跑步中"的订单</td><td>自动跳过（计入 skipped）</td></tr>
     <tr><td>已完成（剩余次数&le;0）</td><td>自动跳过</td></tr>
-    <tr><td>tsn 退款金额</td><td>单价 &times; 距离 &times; 剩余次数</td></tr>
+    <tr><td>tsn / tsn2 退款金额</td><td>单价 &times; 该订单距离(km) &times; 剩余次数</td></tr>
     <tr><td>其他 退款金额</td><td>单价 &times; 剩余次数</td></tr>
   </table>
 </div>
@@ -440,6 +464,186 @@ td code{background:#f1f5f9;padding:1px 6px;border-radius:3px;font-size:12px;colo
   <div class="tip">"跑步中"的订单会自动跳过，不会报错。</div>
 </div>
 
+<!-- 数据库字段建议 -->
+<div class="card" id="db">
+  <h2>数据库字段建议</h2>
+  <p class="desc">各服务建表参考，直接按此设计字段即可。建议为 <code>yid</code>、<code>uid</code>、<code>user</code> 建索引，<code>unit_price</code> 必存（退款计算用）。</p>
+
+  <h3>tsn — 体适能 <code style="font-size:12px;background:#f1f5f9;padding:2px 8px;border-radius:4px;color:#dc2626">love_learn_yctsn</code></h3>
+  <table>
+    <tr><th>字段</th><th>类型</th><th>说明</th></tr>
+    <tr><td><code>yid</code></td><td>varchar(10)</td><td>上游订单ID</td></tr>
+    <tr><td><code>uid</code></td><td>int</td><td>用户ID</td></tr>
+    <tr><td><code>school</code></td><td>varchar(50)</td><td>学校</td></tr>
+    <tr><td><code>user</code></td><td>varchar(20)</td><td>账号</td></tr>
+    <tr><td><code>pass</code></td><td>varchar(50)</td><td>密码</td></tr>
+    <tr><td><code>name</code></td><td>varchar(20)</td><td>姓名（同步回填）</td></tr>
+    <tr><td><code>total</code></td><td>varchar(255)</td><td>总运动距离（同步回填）</td></tr>
+    <tr><td><code>distance</code></td><td>varchar(255)</td><td>本单跑步距离km</td></tr>
+    <tr><td><code>sport_num</code></td><td>int</td><td>总次数</td></tr>
+    <tr><td><code>finish_num</code></td><td>int</td><td>已完成次数</td></tr>
+    <tr><td><code>today_status</code></td><td>varchar(100)</td><td>今日状态</td></tr>
+    <tr><td><code>today_start_time</code></td><td>varchar(100)</td><td>今日开跑时间</td></tr>
+    <tr><td><code>today_over_time</code></td><td>varchar(100)</td><td>今日结束时间</td></tr>
+    <tr><td><code>today_speed</code></td><td>varchar(20)</td><td>今日配速</td></tr>
+    <tr><td><code>today_distance</code></td><td>varchar(20)</td><td>今日距离</td></tr>
+    <tr><td><code>start_date</code></td><td>date</td><td>开始日期</td></tr>
+    <tr><td><code>run_week_day</code></td><td>varchar(255)</td><td>跑步星期JSON</td></tr>
+    <tr><td><code>speed_range</code></td><td>text</td><td>配速范围JSON</td></tr>
+    <tr><td><code>startTimeRange</code></td><td>text</td><td>开跑时间段</td></tr>
+    <tr><td><code>order_data</code></td><td>longtext</td><td>跑步记录</td></tr>
+    <tr><td><code>remark</code></td><td>text</td><td>备注</td></tr>
+    <tr><td><code>unit_price</code></td><td>decimal(10,4)</td><td>下单单价</td></tr>
+    <tr><td><code>addtime</code></td><td>varchar(255)</td><td>下单时间</td></tr>
+    <tr><td><code>push_token</code></td><td>varchar(255)</td><td>推送token</td></tr>
+  </table>
+
+  <h3>tsn2 — tsn新体适能 <code style="font-size:12px;background:#f1f5f9;padding:2px 8px;border-radius:4px;color:#dc2626">love_learn_yctsn2</code></h3>
+  <table>
+    <tr><th>字段</th><th>类型</th><th>说明</th></tr>
+    <tr><td><code>yid</code></td><td>varchar(64)</td><td>上游订单ID</td></tr>
+    <tr><td><code>uid</code></td><td>int</td><td>用户ID</td></tr>
+    <tr><td><code>school</code></td><td>varchar(100)</td><td>学校</td></tr>
+    <tr><td><code>user</code></td><td>varchar(50)</td><td>账号</td></tr>
+    <tr><td><code>pass</code></td><td>varchar(100)</td><td>密码</td></tr>
+    <tr><td><code>name</code></td><td>varchar(50)</td><td>姓名（同步回填）</td></tr>
+    <tr><td><code>total</code></td><td>varchar(50)</td><td>总里程（同步回填）</td></tr>
+    <tr><td><code>distance</code></td><td>decimal(5,1)</td><td>本单距离km（每人独立）</td></tr>
+    <tr><td><code>fence</code></td><td>varchar(50)</td><td>跑区</td></tr>
+    <tr><td><code>sport_num</code></td><td>int</td><td>总次数</td></tr>
+    <tr><td><code>finish_num</code></td><td>int</td><td>已完成次数</td></tr>
+    <tr><td><code>today_status</code></td><td>varchar(50)</td><td>今日状态</td></tr>
+    <tr><td><code>today_start_time</code></td><td>varchar(30)</td><td>今日开跑时间</td></tr>
+    <tr><td><code>today_over_time</code></td><td>varchar(30)</td><td>今日结束时间</td></tr>
+    <tr><td><code>today_speed</code></td><td>varchar(30)</td><td>今日配速</td></tr>
+    <tr><td><code>today_distance</code></td><td>varchar(30)</td><td>今日距离</td></tr>
+    <tr><td><code>start_date</code></td><td>varchar(20)</td><td>开始日期</td></tr>
+    <tr><td><code>run_week_day</code></td><td>varchar(50)</td><td>跑步星期JSON</td></tr>
+    <tr><td><code>speed_range</code></td><td>varchar(50)</td><td>配速范围JSON</td></tr>
+    <tr><td><code>startTimeRange</code></td><td>varchar(30)</td><td>开跑时间段</td></tr>
+    <tr><td><code>order_data</code></td><td>text</td><td>跑步记录</td></tr>
+    <tr><td><code>remark</code></td><td>varchar(200)</td><td>备注</td></tr>
+    <tr><td><code>unit_price</code></td><td>decimal(8,4)</td><td>下单单价/km/次</td></tr>
+    <tr><td><code>addtime</code></td><td>datetime</td><td>下单时间</td></tr>
+    <tr><td><code>push_token</code></td><td>varchar(200)</td><td>推送token</td></tr>
+  </table>
+
+  <h3>yyd — 云运动 <code style="font-size:12px;background:#f1f5f9;padding:2px 8px;border-radius:4px;color:#dc2626">love_learn_ycyyd</code></h3>
+  <table>
+    <tr><th>字段</th><th>类型</th><th>说明</th></tr>
+    <tr><td><code>yid</code></td><td>varchar(10)</td><td>上游订单ID</td></tr>
+    <tr><td><code>uid</code></td><td>int</td><td>用户ID</td></tr>
+    <tr><td><code>school</code></td><td>varchar(50)</td><td>学校</td></tr>
+    <tr><td><code>user</code></td><td>varchar(20)</td><td>账号</td></tr>
+    <tr><td><code>pass</code></td><td>varchar(50)</td><td>密码</td></tr>
+    <tr><td><code>name</code></td><td>varchar(20)</td><td>姓名（同步回填）</td></tr>
+    <tr><td><code>totalkm</code></td><td>varchar(255)</td><td>总运动距离（同步回填）</td></tr>
+    <tr><td><code>totalnum</code></td><td>int</td><td>总运动次数（同步回填）</td></tr>
+    <tr><td><code>type</code></td><td>varchar(100)</td><td>订单类型（如：大二女生，1.5km）</td></tr>
+    <tr><td><code>sport_num</code></td><td>int</td><td>总次数</td></tr>
+    <tr><td><code>finish_num</code></td><td>int</td><td>已完成次数</td></tr>
+    <tr><td><code>today_status</code></td><td>varchar(100)</td><td>今日状态</td></tr>
+    <tr><td><code>today_start_time</code></td><td>varchar(100)</td><td>今日开跑时间</td></tr>
+    <tr><td><code>today_over_time</code></td><td>varchar(100)</td><td>今日结束时间</td></tr>
+    <tr><td><code>today_speed</code></td><td>varchar(20)</td><td>今日配速</td></tr>
+    <tr><td><code>today_distance</code></td><td>varchar(20)</td><td>今日距离</td></tr>
+    <tr><td><code>start_date</code></td><td>date</td><td>开始日期</td></tr>
+    <tr><td><code>run_week_times</code></td><td>int</td><td>每周跑步次数</td></tr>
+    <tr><td><code>norun_week_day</code></td><td>varchar(255)</td><td>不跑步星期JSON</td></tr>
+    <tr><td><code>speed_range</code></td><td>text</td><td>配速范围JSON</td></tr>
+    <tr><td><code>startTimeRange</code></td><td>text</td><td>开跑时间段</td></tr>
+    <tr><td><code>order_data</code></td><td>longtext</td><td>跑步记录</td></tr>
+    <tr><td><code>remark</code></td><td>text</td><td>备注</td></tr>
+    <tr><td><code>unit_price</code></td><td>decimal(10,4)</td><td>下单单价</td></tr>
+    <tr><td><code>addtime</code></td><td>varchar(255)</td><td>下单时间</td></tr>
+    <tr><td><code>push_token</code></td><td>varchar(255)</td><td>推送token</td></tr>
+  </table>
+
+  <h3>hqt — 红蜻蜓 <code style="font-size:12px;background:#f1f5f9;padding:2px 8px;border-radius:4px;color:#dc2626">love_learn_ychqt</code></h3>
+  <table>
+    <tr><th>字段</th><th>类型</th><th>说明</th></tr>
+    <tr><td><code>yid</code></td><td>varchar(10)</td><td>上游订单ID</td></tr>
+    <tr><td><code>uid</code></td><td>int</td><td>用户ID</td></tr>
+    <tr><td><code>school</code></td><td>varchar(50)</td><td>学校</td></tr>
+    <tr><td><code>user</code></td><td>varchar(20)</td><td>账号</td></tr>
+    <tr><td><code>pass</code></td><td>varchar(50)</td><td>密码</td></tr>
+    <tr><td><code>info</code></td><td>text</td><td>学生信息（同步回填）</td></tr>
+    <tr><td><code>total</code></td><td>text</td><td>总运动结果（同步回填）</td></tr>
+    <tr><td><code>fence</code></td><td>varchar(100)</td><td>校区</td></tr>
+    <tr><td><code>distance</code></td><td>varchar(20)</td><td>跑步距离</td></tr>
+    <tr><td><code>sport_num</code></td><td>int</td><td>总次数</td></tr>
+    <tr><td><code>finish_num</code></td><td>int</td><td>已完成次数</td></tr>
+    <tr><td><code>today_status</code></td><td>varchar(100)</td><td>今日状态</td></tr>
+    <tr><td><code>today_start_time</code></td><td>varchar(100)</td><td>今日开跑时间</td></tr>
+    <tr><td><code>today_over_time</code></td><td>varchar(100)</td><td>今日结束时间</td></tr>
+    <tr><td><code>today_speed</code></td><td>varchar(20)</td><td>今日配速</td></tr>
+    <tr><td><code>today_distance</code></td><td>varchar(20)</td><td>今日距离</td></tr>
+    <tr><td><code>start_date</code></td><td>date</td><td>开始日期</td></tr>
+    <tr><td><code>run_week_times</code></td><td>int</td><td>每周跑步次数</td></tr>
+    <tr><td><code>norun_week_day</code></td><td>varchar(255)</td><td>不跑步星期JSON</td></tr>
+    <tr><td><code>speed_range</code></td><td>mediumtext</td><td>配速范围JSON</td></tr>
+    <tr><td><code>startTimeRange</code></td><td>mediumtext</td><td>开跑时间段</td></tr>
+    <tr><td><code>order_data</code></td><td>longtext</td><td>跑步记录</td></tr>
+    <tr><td><code>remark</code></td><td>text</td><td>备注</td></tr>
+    <tr><td><code>unit_price</code></td><td>decimal(10,4)</td><td>下单单价</td></tr>
+    <tr><td><code>addtime</code></td><td>varchar(255)</td><td>下单时间</td></tr>
+  </table>
+
+  <h3>wdkp — 位动酷跑 <code style="font-size:12px;background:#f1f5f9;padding:2px 8px;border-radius:4px;color:#dc2626">love_learn_ycwdkp</code></h3>
+  <table>
+    <tr><th>字段</th><th>类型</th><th>说明</th></tr>
+    <tr><td><code>yid</code></td><td>varchar(10)</td><td>上游订单ID</td></tr>
+    <tr><td><code>uid</code></td><td>int</td><td>用户ID</td></tr>
+    <tr><td><code>school</code></td><td>varchar(20)</td><td>学校</td></tr>
+    <tr><td><code>user</code></td><td>varchar(20)</td><td>学号</td></tr>
+    <tr><td><code>pass</code></td><td>varchar(50)</td><td>密码</td></tr>
+    <tr><td><code>name</code></td><td>varchar(100)</td><td>姓名（同步回填）</td></tr>
+    <tr><td><code>total</code></td><td>varchar(255)</td><td>总里程进度（同步回填）</td></tr>
+    <tr><td><code>fence</code></td><td>varchar(20)</td><td>校区（本部/北校区等）</td></tr>
+    <tr><td><code>distance</code></td><td>varchar(20)</td><td>跑步距离</td></tr>
+    <tr><td><code>sport_num</code></td><td>int</td><td>总次数</td></tr>
+    <tr><td><code>finish_num</code></td><td>int</td><td>已完成次数</td></tr>
+    <tr><td><code>today_status</code></td><td>varchar(50)</td><td>今日状态</td></tr>
+    <tr><td><code>today_start_time</code></td><td>varchar(50)</td><td>今日开跑时间</td></tr>
+    <tr><td><code>today_over_time</code></td><td>varchar(50)</td><td>今日结束时间</td></tr>
+    <tr><td><code>today_speed</code></td><td>varchar(20)</td><td>今日配速</td></tr>
+    <tr><td><code>today_distance</code></td><td>varchar(20)</td><td>今日距离</td></tr>
+    <tr><td><code>start_date</code></td><td>date</td><td>开始日期</td></tr>
+    <tr><td><code>run_week_times</code></td><td>int</td><td>每周跑步次数</td></tr>
+    <tr><td><code>norun_week_day</code></td><td>varchar(50)</td><td>不跑步星期JSON</td></tr>
+    <tr><td><code>speed_range</code></td><td>varchar(50)</td><td>配速范围JSON</td></tr>
+    <tr><td><code>startTimeRange</code></td><td>varchar(50)</td><td>开跑时间段</td></tr>
+    <tr><td><code>order_data</code></td><td>longtext</td><td>跑步记录</td></tr>
+    <tr><td><code>remark</code></td><td>text</td><td>备注</td></tr>
+    <tr><td><code>unit_price</code></td><td>decimal(10,4)</td><td>下单单价</td></tr>
+    <tr><td><code>addtime</code></td><td>varchar(50)</td><td>下单时间</td></tr>
+  </table>
+</div>
+
+<!-- 数据同步 -->
+<div class="card" id="sync">
+  <h2>数据同步机制</h2>
+  <p class="desc">下游系统通过定时运行 <code>sync.php</code> 从上游拉取最新订单状态，自动更新本地数据库，无需调用方手动维护状态。</p>
+
+  <h3>同步逻辑</h3>
+  <ol style="padding-left:20px;font-size:13px;color:#4b5563;line-height:2">
+    <li>调用上游 <code>getorders</code> 拉取全量订单</li>
+    <li>按 <code>yid</code> 匹配本地记录，批量 UPDATE 状态字段</li>
+    <li>若本地记录尚无 <code>yid</code>（下单时上游未返回），则按 <code>user + addtime</code> 回填 yid</li>
+  </ol>
+
+  <h3>同步字段</h3>
+  <table>
+    <tr><th>service</th><th>同步字段</th></tr>
+    <tr><td><code>tsn / tsn2</code></td><td>today_status, today_start_time, today_over_time, today_speed, today_distance, finish_num, name, total, order_data, remark</td></tr>
+    <tr><td><code>yyd</code></td><td>today_status, today_start_time, today_over_time, today_speed, today_distance, finish_num, type, order_data, name, totalkm, totalnum, remark</td></tr>
+    <tr><td><code>hqt</code></td><td>today_status, today_start_time, today_over_time, today_speed, today_distance, finish_num, info, total, order_data, remark</td></tr>
+    <tr><td><code>wdkp</code></td><td>today_status, today_start_time, today_over_time, today_speed, today_distance, finish_num, name, total, order_data, remark</td></tr>
+  </table>
+
+  <div class="tip">同步脚本由下游服务器定时调用（如每分钟一次），调用方通过 <code>getorders</code> 接口读取的状态数据即为最新同步结果，无需额外处理。</div>
+</div>
+
 <!-- 错误处理 -->
 <div class="card" id="err">
   <h2>错误处理</h2>
@@ -451,7 +655,7 @@ td code{background:#f1f5f9;padding:1px 6px;border-radius:3px;font-size:12px;colo
     <tr><th>msg</th><th>原因</th></tr>
     <tr><td>缺少uid或key参数</td><td>Body 未传 uid/key</td></tr>
     <tr><td>身份校验失败，uid或key错误</td><td>uid 或 key 不匹配</td></tr>
-    <tr><td>无效的服务类型</td><td>service 参数错误，可选 tsn/yyd/hqt/wdkp</td></tr>
+    <tr><td>无效的服务类型</td><td>service 参数错误，可选 tsn/tsn2/yyd/hqt/wdkp</td></tr>
     <tr><td>操作过于频繁</td><td>触发限流，等待后重试</td></tr>
     <tr><td>余额不足</td><td>账户余额不足以支付订单</td></tr>
     <tr><td>订单不存在或不属于该账户</td><td>yid 错误或非本人订单</td></tr>
@@ -460,7 +664,7 @@ td code{background:#f1f5f9;padding:1px 6px;border-radius:3px;font-size:12px;colo
   </table>
 </div>
 
-<div style="text-align:center;padding:24px 0;color:#9ca3af;font-size:13px">隐藏运动对接文档 &nbsp;|&nbsp; 更新日期：2026-03-23 &nbsp;|&nbsp; v2.0</div>
+<div style="text-align:center;padding:24px 0;color:#9ca3af;font-size:13px">隐藏运动对接文档 &nbsp;|&nbsp; 更新日期：2026-03-30 &nbsp;|&nbsp; v2.1</div>
 </div>
 <script>
 (function(){
